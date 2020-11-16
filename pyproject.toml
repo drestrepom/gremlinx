@@ -1,8 +1,12 @@
 [tool.poetry]
 name = "gremlinx"
 version = "0.1.0"
-description = ""
+description = "Gremlinx is a simple graph traversal language."
 authors = ["Diego Restrepo <drestrepo@fluidattacks.com>"]
+packages = [
+  { include = "gremlinx", from = "." }
+]
+repository = "https://github.com/Skouro/gremlinx"
 
 [tool.poetry.dependencies]
 python = "^3.8"
