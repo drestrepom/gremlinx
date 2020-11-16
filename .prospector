@@ -1,0 +1,8 @@
+output-format: json
+
+strictness: veryhigh
+test-warnings: true
+
+pep8:
+  disable:
+    - N802
