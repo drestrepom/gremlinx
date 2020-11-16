@@ -21,6 +21,11 @@ from networkx.classes.reportviews import (
 )
 from networkx import subgraph_view
 
+# Local imports
+from gremlinx.utils.exceptions import NotExecutable
+
+common_ids_type = Union[str, int]
+
 
 class GraphTraversal():
     def __init__(
@@ -34,31 +39,99 @@ class GraphTraversal():
         self.edges = edges
 
     def values(self) -> List[Dict[str, Any]]:
-        if self.nodes:
-            return [data for _, data in self.nodes.nodes.data()]
-        raise Exception
+        """Simplify access to the results values.
 
-    def data(self) -> List[Tuple[str, Dict[str, Any]]]:
+        Raises:
+            NotImplementedError: the `TraversalGraph` does not have `nodes` or
+            `edges`.
+
+        Returns:
+            List[Dict[str, Any]]: return a `List` with the values of the
+            `nodes` or `edges`.
+        """
         if self.nodes:
-            return cast(List[Tuple[str, Dict[str, Any]]],
-                        self.nodes.nodes.data())
-        raise Exception
+            return [data for _, data in self.nodes.nodes().data()]
+        if self.edges:
+            return [data[2] for data in self.edges.edges().data()]
+        raise NotImplementedError
+
+    def data(
+        self
+    ) -> List[Union[Tuple[common_ids_type, common_ids_type, Dict[str, Any]],
+                    Tuple[common_ids_type, Dict[str, Any]]]]:
+        """Simplify access to the results data.
+
+        Raises:
+            NotImplementedError: the `TraversalGraph` does not have `nodes` or
+            `edges`.
+
+        Returns:
+            List[Union[Tuple[common_ids_type, common_ids_type, Dict[str, Any]],
+            Tuple[common_ids_type, Dict[str, Any]]]]: return a `List` with the
+            data of the `nodes` or `edges`.
+        """
+        if self.nodes:
+            return cast(
+                List[Union[Tuple[common_ids_type, common_ids_type,
+                                 Dict[str, Any]], Tuple[common_ids_type,
+                                                        Dict[str, Any]]]],
+                self.nodes.nodes.data())
+        if self.edges:
+            return cast(
+                List[Union[Tuple[common_ids_type, common_ids_type,
+                                 Dict[str, Any]], Tuple[common_ids_type,
+                                                        Dict[str, Any]]]],
+                self.edges.edges.data())
+        raise NotImplementedError
 
     def V(self) -> GraphTraversal:
+        """Create a TraversalGraph to traverse the nodes.
+
+        Returns:
+            GraphTraversal: nodes.
+        """
         return GraphTraversal(
             graph=self.graph,
             nodes=self.graph.nodes,
         )
 
     def E(self) -> GraphTraversal:
+        """Create a TraversalGraph to traverse the edges.
+
+        Returns:
+            GraphTraversal: edges.
+        """
         return GraphTraversal(
             graph=self.graph,
-            edges=self.graph.edges,
+            edges=self.graph,
         )
 
     def hasLabel(self, label: str) -> GraphTraversal:
+        """Filter the nodes that have the label.
+
+        Networkx does not have native support for labels, they must be,
+        simulated with node properties.
+
+        To filter the nodes by labels, the labels must have the following
+        format.
+
+        >>> G.addNode('1', labelV='airport')
+
+        The key of the label must have the following format `label[anything]`.
+        >>> # Find nodes that are airports
+        >>> g.V().hasLabel('airport')
+
+        Args:
+            label (str): value of label.
+
+        Raises:
+            NotExecutable: this function can only be executed on nodes
+
+        Returns:
+            GraphTraversal: nodes that contain the indicated label.
+        """
         if not self.nodes:
-            raise NotImplementedError
+            raise NotExecutable
 
         def _has(node: Any) -> bool:
             return any(value == label
@@ -80,7 +153,7 @@ class GraphTraversal():
     ) -> GraphTraversal:
         label: Optional[str] = None
         prop: Optional[str] = None
-        value: Any = True
+        value: Optional[Any] = None
 
         if len(args) == 1:
             prop = args[0]
@@ -99,9 +172,13 @@ class GraphTraversal():
         def __has(*args: Any, ) -> bool:
             result = None
             if len(args) == 1 and self.nodes:
-                result = self.graph.nodes[args[0]].get(prop, None) == value
+                result = self.graph.nodes[args[0]].get(
+                    prop, None) == value if value else bool(
+                        self.graph.nodes[args[0]].get(prop, None))
             if len(args) == 2 and self.edges:
-                result = self.graph[args[0]][args[1]].get(prop, None) == value
+                result = self.graph[args[0]][args[1]].get(
+                    prop, None) == value if value else self.graph[args[0]][
+                        args[1]].get(prop, None)
             if result is not None:
                 return result or negation
             raise NotImplementedError
