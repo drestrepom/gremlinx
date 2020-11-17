@@ -2,9 +2,9 @@
 from __future__ import annotations
 from typing import (
     Any,
-    cast,
     Dict,
     List,
+    Generator,
     Optional,
     Tuple,
     Union,
@@ -14,10 +14,6 @@ from typing import (
 from networkx import (
     Graph,
     DiGraph,
-)
-from networkx.classes.reportviews import (
-    NodeView,
-    EdgeView,
 )
 from networkx import subgraph_view
 
@@ -31,14 +27,24 @@ class GraphTraversal():
     def __init__(
         self,
         graph: Union[Graph, DiGraph],
-        nodes: Optional[NodeView] = None,
-        edges: Optional[EdgeView] = None,
+        sources: Optional[List[Union[common_ids_type,
+                                     Tuple[common_ids_type,
+                                           common_ids_type]]]] = None,
     ):
         self.graph = graph
-        self.nodes = nodes
-        self.edges = edges
+        self.sources = sources or list()
 
-    def values(self) -> List[Dict[str, Any]]:
+    def _sources_is_nodes(self) -> bool:
+        if self.sources:
+            return not isinstance(self.sources[0], tuple)
+        return False
+
+    def _sources_is_edges(self) -> bool:
+        if self.sources:
+            return isinstance(self.sources[0], tuple)
+        return False
+
+    def values(self) -> Generator[Dict[str, Any], None, None]:
         """Simplify access to the results values.
 
         Raises:
@@ -49,16 +55,17 @@ class GraphTraversal():
             List[Dict[str, Any]]: return a `List` with the values of the
             `nodes` or `edges`.
         """
-        if self.nodes:
-            return [data for _, data in self.nodes.nodes().data()]
-        if self.edges:
-            return [data[2] for data in self.edges.edges().data()]
-        raise NotImplementedError
+        for item in self.sources:
+            if self._sources_is_edges():
+                out, ingress = item  # type: ignore
+                yield self.graph[out][ingress]
+            else:
+                yield self.graph.nodes[item]
 
     def data(
         self
-    ) -> List[Union[Tuple[common_ids_type, common_ids_type, Dict[str, Any]],
-                    Tuple[common_ids_type, Dict[str, Any]]]]:
+    ) -> Generator[Union[Tuple[common_ids_type, common_ids_type, Dict[
+            str, Any]], Tuple[common_ids_type, Dict[str, Any]]], None, None]:
         """Simplify access to the results data.
 
         Raises:
@@ -70,19 +77,12 @@ class GraphTraversal():
             Tuple[common_ids_type, Dict[str, Any]]]]: return a `List` with the
             data of the `nodes` or `edges`.
         """
-        if self.nodes:
-            return cast(
-                List[Union[Tuple[common_ids_type, common_ids_type,
-                                 Dict[str, Any]], Tuple[common_ids_type,
-                                                        Dict[str, Any]]]],
-                self.nodes.nodes.data())
-        if self.edges:
-            return cast(
-                List[Union[Tuple[common_ids_type, common_ids_type,
-                                 Dict[str, Any]], Tuple[common_ids_type,
-                                                        Dict[str, Any]]]],
-                self.edges.edges.data())
-        raise NotImplementedError
+        for item in self.sources:
+            if self._sources_is_edges():
+                out, ingress = item  # type: ignore
+                yield (out, ingress, self.graph[out][ingress])
+            else:
+                yield self.graph.nodes[item]
 
     def V(self) -> GraphTraversal:
         """Create a TraversalGraph to traverse the nodes.
@@ -92,7 +92,7 @@ class GraphTraversal():
         """
         return GraphTraversal(
             graph=self.graph,
-            nodes=self.graph.nodes,
+            sources=list(self.graph.nodes.keys()),
         )
 
     def E(self) -> GraphTraversal:
@@ -103,7 +103,7 @@ class GraphTraversal():
         """
         return GraphTraversal(
             graph=self.graph,
-            edges=self.graph,
+            sources=list(self.graph.edges.keys()),
         )
 
     def hasLabel(self, label: str) -> GraphTraversal:
@@ -130,19 +130,22 @@ class GraphTraversal():
         Returns:
             GraphTraversal: nodes that contain the indicated label.
         """
-        if not self.nodes:
+        if self._sources_is_edges():
             raise NotExecutable
 
-        def _has(node: Any) -> bool:
-            return any(value == label
-                       for key, value in self.graph.nodes[node].items()
-                       if key.startswith('label'))
+        def _has(node: common_ids_type) -> bool:
+            if node in self.sources:
+                return any(value == label
+                           for key, value in self.graph.nodes[node].items()
+                           if key.startswith('label'))
+            return False
 
         return GraphTraversal(
-            nodes=subgraph_view(
-                self.graph,
-                filter_node=_has,
-            ),
+            sources=list(
+                subgraph_view(
+                    self.graph,
+                    filter_node=_has,
+                ).nodes.keys()),
             graph=self.graph,
         )
 
@@ -164,51 +167,57 @@ class GraphTraversal():
             label = args[0]
             prop = args[1]
             value = args[2]
-            if self.edges:
+            if self._sources_is_edges():
                 raise Exception
         else:
             raise Exception
 
+        result: Optional[GraphTraversal] = None
+
         def __has(*args: Any, ) -> bool:
-            result = None
-            if len(args) == 1 and self.nodes:
-                result = self.graph.nodes[args[0]].get(
+            _result = None
+            if result and self._sources_is_nodes(
+            ) and args[0] not in result.sources:
+                return False
+
+            if self._sources_is_nodes and args[0] in self.sources:
+                _result = self.graph.nodes[args[0]].get(
                     prop, None) == value if value else bool(
                         self.graph.nodes[args[0]].get(prop, None))
-            if len(args) == 2 and self.edges:
-                result = self.graph[args[0]][args[1]].get(
+            elif self._sources_is_edges() and args in self.sources:
+                _result = self.graph[args[0]][args[1]].get(
                     prop, None) == value if value else self.graph[args[0]][
                         args[1]].get(prop, None)
-            if result is not None:
-                return result or negation
+            if _result is not None:
+                return _result or negation
             raise NotImplementedError
 
-        result = None
-        nodes = self.nodes
         if label:
             result = GraphTraversal(
-                nodes=subgraph_view(
-                    self.hasLabel(label).nodes,
-                    filter_node=__has,
-                ),
+                sources=list(
+                    subgraph_view(
+                        self.graph,
+                        filter_node=__has,
+                    ).nodes.keys()),
                 graph=self.graph,
             )
-            nodes = result.nodes
 
-        if self.nodes:
+        if self._sources_is_nodes():
             result = GraphTraversal(
-                nodes=subgraph_view(
-                    nodes,
-                    filter_node=__has,
-                ),
+                sources=list(
+                    subgraph_view(
+                        self.graph,
+                        filter_node=__has,
+                    ).nodes.keys()),
                 graph=self.graph,
             )
-        if self.edges:
+        elif self._sources_is_edges():
             result = GraphTraversal(
-                edges=subgraph_view(
-                    self.edges,
-                    filter_edge=__has,
-                ),
+                sources=list(
+                    subgraph_view(
+                        self.graph,
+                        filter_edge=__has,
+                    ).edges.keys()),
                 graph=self.graph,
             )
         if result:
