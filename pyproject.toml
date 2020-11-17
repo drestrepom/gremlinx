@@ -13,12 +13,15 @@ python = "^3.8"
 networkx = "2.5"
 Rx = "3.1.1"
 gremlinpython = "3.4.8"
+more-itertools = "8.6.0"
 
 [tool.poetry.dev-dependencies]
 yapf = "0.30.0"
 prospector = "1.3.1"
 Django = "3.1.3"
 mypy = "0.790"
+pdoc = "0.3.2"
+pytest = "6.1.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
