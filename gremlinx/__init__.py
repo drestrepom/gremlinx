@@ -14,6 +14,7 @@ from typing import (
 from networkx import (
     Graph,
     DiGraph,
+    dfs_successors,
 )
 from networkx import subgraph_view
 
@@ -21,6 +22,12 @@ from networkx import subgraph_view
 from gremlinx.utils.exceptions import NotExecutable
 
 common_ids_type = Union[str, int]
+
+
+def _has_label(data: Dict[str, Any], label: str) -> bool:
+    return any(
+        key.startswith('label') and value == label
+        for key, value in data.items())
 
 
 class GraphTraversal():
@@ -44,7 +51,10 @@ class GraphTraversal():
             return isinstance(self.sources[0], tuple)
         return False
 
-    def values(self) -> Generator[Dict[str, Any], None, None]:
+    def values(
+        self,
+        key: Optional[str] = None
+    ) -> Generator[Union[Dict[str, Any], Any], None, None]:
         """Simplify access to the results values.
 
         Raises:
@@ -60,7 +70,8 @@ class GraphTraversal():
                 out, ingress = item  # type: ignore
                 yield self.graph[out][ingress]
             else:
-                yield self.graph.nodes[item]
+                yield self.graph.nodes[item][key] if key else self.graph.nodes[
+                    item]
 
     def data(
         self
@@ -135,9 +146,7 @@ class GraphTraversal():
 
         def _has(node: common_ids_type) -> bool:
             if node in self.sources:
-                return any(value == label
-                           for key, value in self.graph.nodes[node].items()
-                           if key.startswith('label'))
+                return _has_label(self.graph.nodes[node], label)
             return False
 
         return GraphTraversal(
@@ -190,7 +199,8 @@ class GraphTraversal():
                         args[1]].get(prop, None)
             if _result is not None:
                 return _result or negation
-            raise NotImplementedError
+
+            return False
 
         if label:
             result = GraphTraversal(
@@ -229,3 +239,19 @@ class GraphTraversal():
 
     def hasNot(self, *args: Any) -> GraphTraversal:
         return self._has(*args, negation=True)
+
+    def out(self, *labels: str) -> GraphTraversal:
+        if self._sources_is_edges():
+            raise NotExecutable
+        return GraphTraversal(
+            graph=self.graph,
+            sources=[
+                _out for node in self.sources for item, outs in dfs_successors(
+                    self.graph,
+                    source=node,
+                    depth_limit=1,
+                ).items() for _out in outs if (all(
+                    _has_label(self.graph[item][_out], label)
+                    for label in labels) if labels else True)
+            ],
+        )
