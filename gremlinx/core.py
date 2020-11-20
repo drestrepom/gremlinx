@@ -122,3 +122,60 @@ class GraphTraversal():
             graph=self.graph,
             source_type=self.source_type,
         )
+
+    def has(self, *args: Any) -> GraphTraversal:
+        return self._has(*args)
+
+    def _has(
+        self,
+        *args: Any,
+        negation: bool = False,
+    ) -> GraphTraversal:
+        label: Optional[str] = None
+        prop: Optional[str] = None
+        value: Optional[Any] = None
+
+        if len(args) == 1:
+            prop = args[0]
+        elif len(args) == 2:
+            prop = args[0]
+            value = args[1]
+        elif len(args) == 3:
+            label = args[0]
+            prop = args[1]
+            value = args[2]
+            if self.sources_is_edges:
+                raise Exception
+        else:
+            raise Exception
+
+        def __has(*args: Any, ) -> bool:
+            _result = None
+
+            if self.sources_is_vertex:
+                v_id = args[0]
+                _result = self.graph.nodes[v_id].get(
+                    prop) == value if value else bool(
+                        self.graph.nodes[v_id].get(prop))
+
+            elif self.sources_is_edges:
+                v_out, v_in = args
+                _result = self.graph[v_out][v_in].get(
+                    prop) == value if value else bool(
+                        self.graph[v_out][v_in].get(prop))
+            if _result is not None:
+                return _result or negation
+
+            return False
+
+        if label:
+            self.sources = self.hasLabel(label).sources
+
+        if self.sources_is_vertex:
+            self.sources = self.sources.pipe(ops.filter(__has))
+        elif self.sources_is_edges:
+            self.sources = self.sources.pipe(ops.filter(lambda x: __has(*x)))
+        return self
+
+    def hasNot(self, *args: Any) -> GraphTraversal:
+        return self._has(*args, negation=True)
