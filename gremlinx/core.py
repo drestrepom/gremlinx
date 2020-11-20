@@ -80,15 +80,6 @@ class GraphTraversal():
     def sources_is_edges(self) -> bool:
         return self.source_type == SourceType.EDGE
 
-    def _has_label(self, vertex: str, *labels: str) -> bool:
-        vertex_data = self.graph.nodes[vertex]
-        return all(vertex_data.get(f'label_{label}')
-                   for label in labels) or all(
-                       any(
-                           key.startswith('label') and value == label
-                           for key, value in vertex_data.items())
-                       for label in labels)
-
     def hasLabel(self, *labels: str) -> GraphTraversal:
         """Filter the nodes that have the label.
 
@@ -116,69 +107,31 @@ class GraphTraversal():
         if self.source_type == SourceType.EDGE:
             raise NotExecutable
 
-        return GraphTraversal(
-            sources=self.sources.pipe(
-                ops.filter(lambda x: statics.hasLabel(self, x, *labels))),
-            graph=self.graph,
-            source_type=self.source_type,
-        )
+        self.sources = self.sources.pipe(
+            ops.filter(lambda x: statics.hasLabel(
+                *labels,
+                traversal=self,
+                vertex=x,
+            )))
+        return self
 
     def has(self, *args: Any) -> GraphTraversal:
-        return self._has(*args)
-
-    def _has(
-        self,
-        *args: Any,
-        negation: bool = False,
-    ) -> GraphTraversal:
-        label: Optional[str] = None
-        prop: Optional[str] = None
-        value: Optional[Any] = None
-
-        if len(args) == 1:
-            prop = args[0]
-        elif len(args) == 2:
-            prop = args[0]
-            value = args[1]
-        elif len(args) == 3:
-            label = args[0]
-            prop = args[1]
-            value = args[2]
-            if self.sources_is_edges:
-                raise Exception
-        else:
-            raise Exception
-
-        def __has(*args: Any, ) -> bool:
-            _result = None
-
-            if self.sources_is_vertex:
-                v_id = args[0]
-                _result = self.graph.nodes[v_id].get(
-                    prop) == value if value else bool(
-                        self.graph.nodes[v_id].get(prop))
-
-            elif self.sources_is_edges:
-                v_out, v_in = args
-                _result = self.graph[v_out][v_in].get(
-                    prop) == value if value else bool(
-                        self.graph[v_out][v_in].get(prop))
-            if _result is not None:
-                return _result or negation
-
-            return False
-
-        if label:
-            self.sources = self.hasLabel(label).sources
-
-        if self.sources_is_vertex:
-            self.sources = self.sources.pipe(ops.filter(__has))
-        elif self.sources_is_edges:
-            self.sources = self.sources.pipe(ops.filter(lambda x: __has(*x)))
+        self.sources = self.sources.pipe(
+            ops.filter(lambda x: statics.has(
+                *args,
+                traversal=self,
+                vertex=x,
+            )))
         return self
 
     def hasNot(self, *args: Any) -> GraphTraversal:
-        return self._has(*args, negation=True)
+        self.sources = self.sources.pipe(
+            ops.filter(lambda x: not statics.has(
+                *args,
+                traversal=self,
+                vertex=x,
+            )))
+        return self
 
     def Not(
         self, function: Tuple[Callable[[Any], bool], Tuple[Any, ...],
