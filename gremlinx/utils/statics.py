@@ -12,8 +12,11 @@ from typing import (
 # Local imports
 
 
-def hasLabel(traversal: Any, vertex: Union[str, Tuple[str, str]],
-             *labels: str) -> bool:
+def hasLabel(
+    *labels: str,
+    traversal: Any,
+    vertex: Union[str, Tuple[str, str]],
+) -> bool:
     vertex_data = traversal.graph.nodes[vertex]
     return all(vertex_data.get(f'label_{label}') for label in labels) or all(
         any(
