@@ -179,3 +179,13 @@ class GraphTraversal():
 
     def hasNot(self, *args: Any) -> GraphTraversal:
         return self._has(*args, negation=True)
+
+    def Not(
+        self, function: Tuple[Callable[[Any], bool], Tuple[Any, ...],
+                              Dict[str, Any]]
+    ) -> GraphTraversal:
+        _function, args, kwargs = function
+        self.sources = self.sources.pipe(
+            ops.filter(lambda x: not _function(  # type: ignore
+                traversal=self, vertex=x, *args, **kwargs)))
+        return self
