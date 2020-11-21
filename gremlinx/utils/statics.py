@@ -17,7 +17,10 @@ def hasLabel(
     traversal: Any,
     vertex: Union[str, Tuple[str, str]],
 ) -> bool:
-    vertex_data = traversal.graph.nodes[vertex]
+    if traversal.sources_is_vertex:
+        vertex_data = traversal.graph.nodes[vertex]
+    else:
+        vertex_data = vertex_data = traversal.graph[vertex[0]][vertex[1]]
     return all(vertex_data.get(f'label_{label}') for label in labels) or all(
         any(
             key.startswith('label') and value == label
@@ -74,3 +77,14 @@ def has(
     elif traversal.sources_is_edges:
         result = __has(*vertex)
     return result
+
+
+def out(
+    *labels: Any,
+    traversal: Any,
+    vertex: Union[str, Tuple[str, str]],
+) -> Tuple[str, ...]:
+    childs: Tuple[str, ...] = tuple(traversal.graph.adj[vertex])
+    return tuple(child for child in childs if (all(
+        hasLabel(label, vertex=child, traversal=traversal)
+        for label in labels) if labels else True))
