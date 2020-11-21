@@ -10,7 +10,6 @@ from typing import (
     Tuple,
     Union,
 )
-from enum import Enum
 
 # Third libraries
 from networkx import (
@@ -71,6 +70,17 @@ class GraphTraversal():
         self.graph = graph
         self.sources = sources
         self.source_type = source_type
+        self.__results__: List[str] = []
+
+    def __iter__(self) -> GraphTraversal:
+        self.sources.subscribe(self.__results__.append)
+        return self
+
+    def __next__(self) -> Union[str, Tuple[str, str]]:
+        try:
+            return self.__results__.pop()
+        except IndexError:
+            raise StopIteration
 
     @property
     def sources_is_vertex(self) -> bool:
