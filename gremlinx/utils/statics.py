@@ -65,9 +65,9 @@ def has(
         return _result
 
     if label:
-        result = hasLabel(traversal, vertex, label)
+        result = hasLabel(label, traversal=traversal, vertex=vertex)
 
-    if traversal.sources_is_vertex and value:
+    if traversal.sources_is_vertex and value and label:
         result = result and __has(vertex)
     elif traversal.sources_is_vertex:
         result = __has(vertex)

@@ -26,7 +26,7 @@ def has(
         NamedArg(Any, 'traversal'),
         NamedArg(Union[str, Tuple[str, str]], 'vertex')
 ], bool], Tuple[str, ...], None]:
-    return _has, args, None
+    return _has, args, dict()
 
 
 def hasLabel(
@@ -36,4 +36,4 @@ def hasLabel(
         NamedArg(Any, 'traversal'),
         NamedArg(Union[str, Tuple[str, str]], 'vertex')
 ], bool], Tuple[str, ...], None]:
-    return _hasLabel, labels, None
+    return _hasLabel, labels, dict()
