@@ -5,8 +5,6 @@ from typing import (
     Callable,
     Dict,
     List,
-    Generator,
-    Optional,
     Tuple,
     Union,
 )
@@ -15,9 +13,7 @@ from typing import (
 from networkx import (
     Graph,
     DiGraph,
-    dfs_successors,
 )
-import networkx as nx
 import rx
 from rx.core import Observable
 import rx.operators as ops
@@ -162,4 +158,26 @@ class GraphTraversal():
                 vertex=x,
                 traversal=self,
             ))))
+        return self
+
+    def values(
+        self,
+        *properties: str,
+    ) -> GraphTraversal:
+        """Simplify access to the results values.
+
+        Raises:
+            NotImplementedError: the `TraversalGraph` does not have `nodes` or
+            `edges`.
+
+        Returns:
+            List[Dict[str, Any]]: return a `List` with the values of the
+            `nodes` or `edges`.
+        """
+        self.sources = self.sources.pipe(
+            ops.map(lambda x: statics.values(
+                *properties,
+                traversal=self,
+                vertex=x,
+            )))
         return self
