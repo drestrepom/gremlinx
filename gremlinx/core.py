@@ -181,3 +181,10 @@ class GraphTraversal():
                 vertex=x,
             )))
         return self
+
+    def fold(self) -> GraphTraversal:
+        self.sources = self.sources.pipe(
+            ops.map(lambda x: statics.fold(
+                vertex=x,
+            )))
+        return self

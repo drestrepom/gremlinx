@@ -37,3 +37,39 @@ def test_not(source: GraphTraversalSource) -> None:
 def test_out(source: GraphTraversalSource) -> None:
     dest = list(source.V().has('airport','code','AUS').out())
     assert len(dest) == 59
+
+def test_value(source: GraphTraversalSource) -> None:
+    expected = set([
+        'PDX',
+        'CLT',
+        'ATL',
+        'AUS',
+        'BOS',
+        'BWI',
+        'DFW',
+        'IAD',
+        'IAH',
+        'JFK',
+        'LAX',
+        'MIA',
+        'MSP',
+        'ORD',
+        'PHX',
+        'RDU',
+        'SEA',
+        'SFO',
+        'SJC',
+        'SAN',
+        'SLC',
+        'LAS',
+        'DEN',
+        'MSY',
+        'EWR',
+        'PHL',
+        'DTW',
+    ])
+    result = set(source.V().has('airport', 'code',
+                                        'LHR').out('route').has(
+                                            'country',
+                                            'US').values('code').fold())
+    assert expected == result
