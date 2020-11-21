@@ -107,3 +107,16 @@ def values(
             for key, value in source.items() if key in propertis
         }
     return source
+
+
+def fold(
+    *,
+    vertex: Union[str, Tuple[str, str]],
+) -> Union[Any, Dict[str, Any]]:
+    if isinstance(vertex, dict):
+        values = tuple(vertex.values())
+        if len(values) == 1:
+            return values[0]
+        return values
+
+    return vertex
