@@ -33,3 +33,7 @@ def test_not(source: GraphTraversalSource) -> None:
     assert len(no_airports) == 245
     assert '0' in no_airports
     assert '1' not in no_airports
+
+def test_out(source: GraphTraversalSource) -> None:
+    dest = list(source.V().has('airport','code','AUS').out())
+    assert len(dest) == 59

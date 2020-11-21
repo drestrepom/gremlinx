@@ -152,3 +152,14 @@ class GraphTraversal():
             ops.filter(lambda x: not _function(  # type: ignore
                 traversal=self, vertex=x, *args, **kwargs)))
         return self
+
+    def out(self, *labels: str) -> GraphTraversal:
+        if self.sources_is_edges:
+            raise NotExecutable
+        self.sources = self.sources.pipe(
+            ops.flat_map(lambda x: rx.of(*statics.out(
+                *labels,
+                vertex=x,
+                traversal=self,
+            ))))
+        return self
