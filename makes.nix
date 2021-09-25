@@ -13,4 +13,10 @@
       };
     };
   };
+  formatPython = {
+    enable = true;
+    targets = [
+      "/" # Entire project
+    ];
+  };
 }

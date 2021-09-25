@@ -1,5 +1,25 @@
-# Standar library
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
+
+from gremlinx.utils import (
+    statics,
+)
+from gremlinx.utils.classes import (
+    SourceType,
+)
+from gremlinx.utils.exceptions import (
+    NotExecutable,
+)
+from networkx import (
+    DiGraph,
+    Graph,
+)
+import rx
+from rx.core import (
+    Observable,
+)
+import rx.operators as ops
 from typing import (
     Any,
     Callable,
@@ -9,22 +29,8 @@ from typing import (
     Union,
 )
 
-# Third libraries
-from networkx import (
-    Graph,
-    DiGraph,
-)
-import rx
-from rx.core import Observable
-import rx.operators as ops
 
-# Local imports
-from gremlinx.utils.exceptions import NotExecutable
-from gremlinx.utils.classes import SourceType
-from gremlinx.utils import statics
-
-
-class GraphTraversalSource():
+class GraphTraversalSource:
     def __init__(
         self,
         graph: Union[Graph, DiGraph],
@@ -39,8 +45,9 @@ class GraphTraversalSource():
         """
         return GraphTraversal(
             graph=self.graph,
-            sources=rx.of(*ids) if ids else rx.of(
-                *list(self.graph.nodes.keys())),
+            sources=rx.of(*ids)
+            if ids
+            else rx.of(*list(self.graph.nodes.keys())),
             source_type=SourceType.VERTEX,
         )
 
@@ -50,13 +57,16 @@ class GraphTraversalSource():
         Returns:
             GraphTraversal: edges.
         """
-        return GraphTraversal(graph=self.graph,
-                              sources=rx.of(*ids) if ids else rx.of(
-                                  *list(self.graph.edges.keys())),
-                              source_type=SourceType.EDGE)
+        return GraphTraversal(
+            graph=self.graph,
+            sources=rx.of(*ids)
+            if ids
+            else rx.of(*list(self.graph.edges.keys())),
+            source_type=SourceType.EDGE,
+        )
 
 
-class GraphTraversal():
+class GraphTraversal:
     def __init__(
         self,
         graph: Union[Graph, DiGraph],
@@ -114,50 +124,70 @@ class GraphTraversal():
             raise NotExecutable
 
         self.sources = self.sources.pipe(
-            ops.filter(lambda x: statics.hasLabel(
-                *labels,
-                traversal=self,
-                vertex=x,
-            )))
+            ops.filter(
+                lambda x: statics.hasLabel(
+                    *labels,
+                    traversal=self,
+                    vertex=x,
+                )
+            )
+        )
         return self
 
     def has(self, *args: Any) -> GraphTraversal:
         self.sources = self.sources.pipe(
-            ops.filter(lambda x: statics.has(
-                *args,
-                traversal=self,
-                vertex=x,
-            )))
+            ops.filter(
+                lambda x: statics.has(
+                    *args,
+                    traversal=self,
+                    vertex=x,
+                )
+            )
+        )
         return self
 
     def hasNot(self, *args: Any) -> GraphTraversal:
         self.sources = self.sources.pipe(
-            ops.filter(lambda x: not statics.has(
-                *args,
-                traversal=self,
-                vertex=x,
-            )))
+            ops.filter(
+                lambda x: not statics.has(
+                    *args,
+                    traversal=self,
+                    vertex=x,
+                )
+            )
+        )
         return self
 
     def Not(
-        self, function: Tuple[Callable[[Any], bool], Tuple[Any, ...],
-                              Dict[str, Any]]
+        self,
+        function: Tuple[
+            Callable[[Any], bool], Tuple[Any, ...], Dict[str, Any]
+        ],
     ) -> GraphTraversal:
         _function, args, kwargs = function
         self.sources = self.sources.pipe(
-            ops.filter(lambda x: not _function(  # type: ignore
-                traversal=self, vertex=x, *args, **kwargs)))
+            ops.filter(
+                lambda x: not _function(  # type: ignore
+                    traversal=self, vertex=x, *args, **kwargs
+                )
+            )
+        )
         return self
 
     def out(self, *labels: str) -> GraphTraversal:
         if self.sources_is_edges:
             raise NotExecutable
         self.sources = self.sources.pipe(
-            ops.flat_map(lambda x: rx.of(*statics.out(
-                *labels,
-                vertex=x,
-                traversal=self,
-            ))))
+            ops.flat_map(
+                lambda x: rx.of(
+                    *statics.out(
+                        *labels,
+                        vertex=x,
+                        traversal=self,
+                    )
+                )
+            )
+        )
         return self
 
     def values(
@@ -175,16 +205,22 @@ class GraphTraversal():
             `nodes` or `edges`.
         """
         self.sources = self.sources.pipe(
-            ops.map(lambda x: statics.values(
-                *properties,
-                traversal=self,
-                vertex=x,
-            )))
+            ops.map(
+                lambda x: statics.values(
+                    *properties,
+                    traversal=self,
+                    vertex=x,
+                )
+            )
+        )
         return self
 
     def fold(self) -> GraphTraversal:
         self.sources = self.sources.pipe(
-            ops.map(lambda x: statics.fold(
-                vertex=x,
-            )))
+            ops.map(
+                lambda x: statics.fold(
+                    vertex=x,
+                )
+            )
+        )
         return self
