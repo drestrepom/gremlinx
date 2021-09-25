@@ -1,5 +1,7 @@
-# Standar library
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
+
 from typing import (
     Any,
     Dict,
@@ -7,10 +9,6 @@ from typing import (
     Tuple,
     Union,
 )
-
-# Third libraries
-
-# Local imports
 
 
 def hasLabel(
@@ -22,10 +20,13 @@ def hasLabel(
         data = traversal.graph.nodes[vertex]
     else:
         data = traversal.graph[vertex[0]][vertex[1]]
-    return all(data.get(f'label_{label}') for label in labels) or all(
+    return all(data.get(f"label_{label}") for label in labels) or all(
         any(
-            key.startswith('label') and value == label
-            for key, value in data.items()) for label in labels)
+            key.startswith("label") and value == label
+            for key, value in data.items()
+        )
+        for label in labels
+    )
 
 
 def has(
@@ -52,19 +53,25 @@ def has(
         raise Exception
     result = False
 
-    def __has(*args: Any, ) -> bool:
+    def __has(
+        *args: Any,
+    ) -> bool:
         _result = False
         if traversal.sources_is_vertex:
             v_id = args[0]
-            _result = traversal.graph.nodes[v_id].get(
-                prop) == value if value else bool(
-                    traversal.graph.nodes[v_id].get(prop))
+            _result = (
+                traversal.graph.nodes[v_id].get(prop) == value
+                if value
+                else bool(traversal.graph.nodes[v_id].get(prop))
+            )
 
         elif traversal.sources_is_edges:
             v_out, v_in = args
-            _result = traversal.graph[v_out][v_in].get(
-                prop) == value if value else bool(
-                    traversal.graph[v_out][v_in].get(prop))
+            _result = (
+                traversal.graph[v_out][v_in].get(prop) == value
+                if value
+                else bool(traversal.graph[v_out][v_in].get(prop))
+            )
 
         return _result
 
@@ -86,9 +93,18 @@ def out(
     vertex: Union[str, Tuple[str, str]],
 ) -> Tuple[str, ...]:
     childs: Tuple[str, ...] = tuple(traversal.graph.adj[vertex])
-    return tuple(child for child in childs if (all(
-        hasLabel(label, vertex=(vertex, child), traversal=traversal)
-        for label in labels) if labels else True))
+    return tuple(
+        child
+        for child in childs
+        if (
+            all(
+                hasLabel(label, vertex=(vertex, child), traversal=traversal)
+                for label in labels
+            )
+            if labels
+            else True
+        )
+    )
 
 
 def values(
@@ -97,14 +113,13 @@ def values(
     vertex: Union[str, Tuple[str, str]],
 ) -> Union[Any, Dict[str, Any]]:
     if traversal.sources_is_edges:
-        out, ingress = vertex  # type: ignore
-        source = traversal.graph[out][ingress]
+        _out, ingress = vertex  # type: ignore
+        source = traversal.graph[_out][ingress]
     else:
         source = traversal.graph.nodes[vertex]
     if propertis:
         source = {
-            key: value
-            for key, value in source.items() if key in propertis
+            key: value for key, value in source.items() if key in propertis
         }
     return source
 
@@ -114,9 +129,9 @@ def fold(
     vertex: Union[str, Tuple[str, str]],
 ) -> Union[Any, Dict[str, Any]]:
     if isinstance(vertex, dict):
-        values = tuple(vertex.values())
-        if len(values) == 1:
-            return values[0]
-        return values
+        _values = tuple(vertex.values())
+        if len(_values) == 1:
+            return _values[0]
+        return _values
 
     return vertex
