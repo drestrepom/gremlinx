@@ -1,9 +1,25 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+# Contents
+
+- [gremlinx](#gremlinx)
+    - [Getting start](#getting-start)
+        - [Basic Gremlimx queries](#basic-gremlimx-queries)
+        - [Retrieving property values from a vertex](#retrieving-property-values-from-a-vertex)
+        - [Does a specific property exist on a given vertex or edge?](#does-a-specific-property-exist-on-a-given-vertex-or-edge)
+        - [Counting things](#counting-things)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # gremlinx
 
-Gremlin X is an attempt to implement the gremlin language on networkx.
+GremlinX is an attempt to implement the gremlin language on networkx.
 
-# Getting start
+## Getting start
+
 Load a dataset of air routes
+Load a dataset of air routes
+
 ```python
 from gremlinx.core import (
     GraphTraversalSource,
@@ -11,13 +27,81 @@ from gremlinx.core import (
 import networkx as nx
 
 G = nx.read_graphml("test/data/air-routes.graphml")
-T = GraphTraversalSource(graph=G)
-# get the airports with the code DFW
-T.V().has('code', 'DFW')
+g = GraphTraversalSource(graph=G)
+```
 
-# get all available routes from Austin airport
-T.V().has("airport", "code", "AUS").out()
+### Basic Gremlimx queries
 
-# get all vertex that are not airports
-T.V().Not(hasLabel("airport"))
- ```
+The query below will return any vertices (nodes) that have the airport label.
+
+```python
+# Find vertices that are airports
+g.V().hasLabel('airport')
+```
+
+This query will return the vertex that represents the Dallas Fort Worth (DFW) airport.
+
+```python
+# Find the DFW vertex
+g.V().has('code','DFW')
+```
+
+The next two queries combine the previous two into a single query.
+
+```python
+# Combining those two previous queries (two ways that are equivalent)
+g.V().hasLabel('airport').has('code','DFW')
+
+g.V().has('airport','code','DFW')
+```
+
+### Retrieving property values from a vertex
+
+```python
+# What property values are stored in the DFW vertex?
+g.V().has('airport','code','DFW').values()
+```
+
+The values step can take parameters that tell it to only return the values for
+the provided key names.
+
+```python
+g.V().has('airport','code','DFW').values('city')
+
+g.V().has('airport','code','DFW').values('runways','icao')
+```
+
+### Does a specific property exist on a given vertex or edge?
+
+You can simply test to see if a property exists as well as testing for it
+containing a specific value.
+
+```python
+# Find all edges that have a 'dist' property
+g.E().has('dist')
+
+# Find all vertices that have a 'region' property
+g.V().has('region')
+
+# Find all the vertices that do not have a 'region' property
+g.V().hasNot('region')
+
+# The above is shorthand for
+ g.V().not(has('region'))
+```
+
+### Counting things
+
+```python
+# How many airports are there in the graph?
+g.V().hasLabel('airport').count()
+
+# How many routes are there?
+g.V().hasLabel('airport').outE('route').count()
+
+# How many routes are there?
+g.V().outE('route').count()
+
+# How many routes are there?
+g.E().hasLabel('route').count()
+```
