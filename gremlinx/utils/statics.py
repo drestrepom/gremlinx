@@ -2,6 +2,9 @@ from __future__ import (
     annotations,
 )
 
+from gremlinx.utils.classes import (
+    GraphTraversalBase,
+)
 from typing import (
     Any,
     Dict,
@@ -10,10 +13,12 @@ from typing import (
     Union,
 )
 
+Vertex = Union[str, Tuple[str, ...], Tuple[Tuple[str, str], ...]]
+
 
 def hasLabel(
     *labels: str,
-    traversal: Any,
+    traversal: GraphTraversalBase,
     vertex: Union[str, Tuple[str, str]],
 ) -> bool:
     if isinstance(vertex, str):
@@ -31,7 +36,7 @@ def hasLabel(
 
 def has(
     *args: Any,
-    traversal: Any,
+    traversal: GraphTraversalBase,
     vertex: Union[str, Tuple[str, str]],
 ) -> bool:
     label: Optional[str] = None
@@ -89,16 +94,41 @@ def has(
 
 def out(
     *labels: Any,
-    traversal: Any,
-    vertex: Union[str, Tuple[str, str]],
+    traversal: GraphTraversalBase,
+    vertex: Vertex,
 ) -> Tuple[str, ...]:
-    childs: Tuple[str, ...] = tuple(traversal.graph.adj[vertex])
+    # in this case vertex is the complete path
+    _vertex = vertex[-1]
+    childs: Tuple[str, ...] = tuple(traversal.graph.adj[_vertex])
     return tuple(
-        child
+        (*vertex, child)
         for child in childs
         if (
             all(
-                hasLabel(label, vertex=(vertex, child), traversal=traversal)
+                hasLabel(label, vertex=(_vertex, child), traversal=traversal)
+                for label in labels
+            )
+            if labels
+            else True
+        )
+    )
+
+
+def In(
+    *labels: Any,
+    traversal: GraphTraversalBase,
+    vertex: Vertex,
+) -> Tuple[str, ...]:
+    # in this case vertex is the complete path
+    _vertex = vertex[-1]
+    parents = tuple(traversal.graph.pred[_vertex])
+
+    return tuple(
+        (*vertex, parent)
+        for parent in parents
+        if (
+            all(
+                hasLabel(label, vertex=(_vertex, parent), traversal=traversal)
                 for label in labels
             )
             if labels
@@ -109,7 +139,7 @@ def out(
 
 def values(
     *propertis: Any,
-    traversal: Any,
+    traversal: GraphTraversalBase,
     vertex: Union[str, Tuple[str, str]],
 ) -> Union[Any, Dict[str, Any]]:
     if traversal.sources_is_edges:
