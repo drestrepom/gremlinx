@@ -7,7 +7,7 @@
       };
     };
     modules = {
-      cliMain = {
+      principal = {
         python = "3.8";
         src = "/gremlinx/";
       };
@@ -18,5 +18,15 @@
     targets = [
       "/" # Entire project
     ];
+  };
+  formatMarkdown = {
+    enable = true;
+    doctocArgs = [ "--title" "# Contents" ];
+    targets = [ "/README.md" ];
+  };
+  lintMarkdown = {
+    all = {
+      targets = [ "/" ];
+    };
   };
 }
