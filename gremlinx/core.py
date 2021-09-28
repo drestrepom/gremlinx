@@ -20,6 +20,9 @@ from networkx import (
     DiGraph,
     Graph,
 )
+from networkx.utils.misc import (
+    iterable,
+)
 import rx
 from rx.core import (
     Observable,
@@ -29,7 +32,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Mapping,
     Optional,
     Tuple,
     Union,
@@ -238,6 +240,9 @@ class GraphTraversal(GraphTraversalBase):
     def group(self) -> GraphGroup:
         return GraphGroup(self)
 
+    def groupCount(self) -> GraphGroupCount:
+        return GraphGroupCount(self)
+
 
 class GraphGroup(UserDict):
     def __init__(
@@ -254,4 +259,42 @@ class GraphGroup(UserDict):
         self.__init__(
             graph_traversal=self.graph_traversal, **transformer(self)
         )
+        return self
+
+
+class GraphGroupCount(UserDict):
+    def __init__(
+        self, graph_traversal: Optional[GraphTraversal] = None, **kwargs: Any
+    ) -> None:
+        self.graph_traversal = graph_traversal
+        for key, value in kwargs.items():
+            if iterable(value):
+                kwargs[key] = len(value)
+        super().__init__(
+            **(kwargs if kwargs else {n_id: 1 for n_id in graph_traversal})
+        )
+
+    def by(
+        self,
+        transformer: Union[str, Callable[[GraphGroupCount], Dict[Any, Any]]],
+    ) -> GraphGroupCount:
+        if callable(transformer):
+            self.__init__(
+                graph_traversal=self.graph_traversal, **transformer(self)
+            )
+            return self
+
+        if isinstance(transformer, str):
+            new_dict: Dict[Any, int] = {}
+            for n_id in self.graph_traversal:
+                property_value = self.graph_traversal.graph.nodes[n_id].get(
+                    transformer
+                )
+                if property_value and property_value in new_dict:
+                    new_dict[property_value] += 1
+                elif property_value:
+                    new_dict[property_value] = 1
+
+            self.__init__(graph_traversal=self.graph_traversal, **new_dict)
+            return self
         return self
