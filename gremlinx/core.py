@@ -3,6 +3,9 @@ from __future__ import (
     annotations,
 )
 
+from collections import (
+    UserDict,
+)
 from gremlinx.utils import (
     statics,
 )
@@ -26,6 +29,8 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Mapping,
+    Optional,
     Tuple,
     Union,
 )
@@ -228,4 +233,25 @@ class GraphTraversal(GraphTraversalBase):
 
     def path(self) -> GraphTraversal:
         self.is_path = True
+        return self
+
+    def group(self) -> GraphGroup:
+        return GraphGroup(self)
+
+
+class GraphGroup(UserDict):
+    def __init__(
+        self, graph_traversal: Optional[GraphTraversal] = None, **kwargs: Any
+    ) -> None:
+        self.graph_traversal = graph_traversal
+        super().__init__(
+            **(kwargs if kwargs else {n_id: n_id for n_id in graph_traversal})
+        )
+
+    def by(
+        self, transformer: Callable[[GraphGroup], Dict[Any, Any]]
+    ) -> GraphGroup:
+        self.__init__(
+            graph_traversal=self.graph_traversal, **transformer(self)
+        )
         return self
