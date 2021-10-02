@@ -33,3 +33,9 @@ class GraphTraversalBase:
         self.sources = sources
         self.source_type = source_type
         self.__results__: List[str] = []
+
+    def sources_is_vextex(self) -> bool:
+        return self.source_type == SourceType.VERTEX
+
+    def sources_is_edge(self) -> bool:
+        return self.source_type == SourceType.EDGE

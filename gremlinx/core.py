@@ -6,6 +6,9 @@ from __future__ import (
 from collections import (
     UserDict,
 )
+from contextlib import (
+    suppress,
+)
 from gremlinx.utils import (
     statics,
 )
@@ -249,9 +252,8 @@ class GraphGroup(UserDict):
         self, graph_traversal: Optional[GraphTraversal] = None, **kwargs: Any
     ) -> None:
         self.graph_traversal = graph_traversal
-        super().__init__(
-            **(kwargs if kwargs else {n_id: n_id for n_id in graph_traversal})
-        )
+        new_dict = {n_id: n_id for n_id in graph_traversal}
+        super().__init__(kwargs or new_dict)
 
     def by(
         self, transformer: Callable[[GraphGroup], Dict[Any, Any]]
@@ -267,23 +269,45 @@ class GraphGroupCount(UserDict):
         self, graph_traversal: Optional[GraphTraversal] = None, **kwargs: Any
     ) -> None:
         self.graph_traversal = graph_traversal
+
+        new_dict = {}
+        if not kwargs:
+            for element in self.graph_traversal:
+                if element in new_dict:
+                    new_dict[element] += 1
+                else:
+                    new_dict[element] = 1
+
         for key, value in kwargs.items():
             if iterable(value):
                 kwargs[key] = len(value)
-        super().__init__(
-            **(kwargs if kwargs else {n_id: 1 for n_id in graph_traversal})
-        )
 
-    def by(
+        super().__init__(kwargs or new_dict)
+
+    def _by_edges(
         self,
         transformer: Union[str, Callable[[GraphGroupCount], Dict[Any, Any]]],
     ) -> GraphGroupCount:
-        if callable(transformer):
-            self.__init__(
-                graph_traversal=self.graph_traversal, **transformer(self)
-            )
-            return self
+        if isinstance(transformer, str):
+            new_dict: Dict[Any, int] = {}
+            for out_edge, in_edge in self.graph_traversal:
+                with suppress(KeyError):
+                    property_value = self.graph_traversal.graph.edges[
+                        out_edge
+                    ][in_edge].get(transformer)
+                    if property_value and property_value in new_dict:
+                        new_dict[property_value] += 1
+                    elif property_value:
+                        new_dict[property_value] = 1
 
+            self.__init__(graph_traversal=self.graph_traversal, **new_dict)
+            return self
+        return self
+
+    def _by_vertex(
+        self,
+        transformer: Union[str, Callable[[GraphGroupCount], Dict[Any, Any]]],
+    ):
         if isinstance(transformer, str):
             new_dict: Dict[Any, int] = {}
             for n_id in self.graph_traversal:
@@ -297,4 +321,19 @@ class GraphGroupCount(UserDict):
 
             self.__init__(graph_traversal=self.graph_traversal, **new_dict)
             return self
+        return self
+
+    def by(
+        self,
+        transformer: Union[str, Callable[[GraphGroupCount], Dict[Any, Any]]],
+    ) -> GraphGroupCount:
+        if callable(transformer):
+            self.__init__(
+                graph_traversal=self.graph_traversal, **transformer(self)
+            )
+            return self
+        if self.graph_traversal.sources_is_vextex():
+            return self._by_vertex(transformer)
+        if self.graph_traversal.sources_is_edge():
+            return self._by_edges(transformer)
         return self

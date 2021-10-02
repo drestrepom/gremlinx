@@ -8,6 +8,7 @@
         - [Retrieving property values from a vertex](#retrieving-property-values-from-a-vertex)
         - [Does a specific property exist on a given vertex or edge?](#does-a-specific-property-exist-on-a-given-vertex-or-edge)
         - [Counting things](#counting-things)
+        - [Counting groups of things](#counting-groups-of-things)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -104,4 +105,30 @@ g.V().outE('route').count()
 
 # How many routes are there?
 g.E().hasLabel('route').count()
+```
+
+### Counting groups of things
+
+```python
+# How many of each type of vertex are there?
+g.V().groupCount().by(label)
+```
+
+We can also run a similar query to find out the distribution of edge labels in the graph
+
+```python
+# How many of each type of edge are there?
+g.E().groupCount().by(label)
+```
+
+By way of a side note, the examples above are shorthand ways of writing something like this example which also counts vertices by label.
+
+```python
+# As above but using group()
+g.V().group().by(label).by(count())
+```
+
+```python
+# How many airports are there in each country?
+g.V().hasLabel('airport').groupCount().by('country')
 ```
