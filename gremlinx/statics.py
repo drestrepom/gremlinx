@@ -55,13 +55,22 @@ def hasLabel(
 
 def label(group: GraphGroup) -> Dict[str, str]:
     new_dict: Dict[Any, List[Any]] = {}
-    for n_id in group.graph_traversal:
-        label_name = group.graph_traversal.graph.nodes[n_id].get("labelV")
-        if label_name and label_name in new_dict:
-            new_dict[label_name].append(n_id)
-        elif label_name:
-            new_dict[label_name] = [n_id]
-
+    if group.graph_traversal.sources_is_vextex():
+        for n_id in group.graph_traversal:
+            label_name = group.graph_traversal.graph.nodes[n_id].get("labelV")
+            if label_name and label_name in new_dict:
+                new_dict[label_name].append(n_id)
+            elif label_name:
+                new_dict[label_name] = [n_id]
+    elif group.graph_traversal.sources_is_edge():
+        for out_edge, in_edge in group.graph_traversal:
+            label_name = group.graph_traversal.graph[out_edge][in_edge].get(
+                "labelE"
+            )
+            if label_name and label_name in new_dict:
+                new_dict[label_name].append(f"{out_edge}-{in_edge}")
+            elif label_name:
+                new_dict[label_name] = [f"{out_edge}-{in_edge}"]
     return new_dict
 
 
